@@ -1,25 +1,29 @@
 # Mermaid Diagram Generation – Core Instructions
 
-## MANDATORY: Always Validate Before Presenting
+## MANDATORY Requirements
 
-**CRITICAL:** Call `validate_mermaid` on ALL diagrams before showing to users. Never skip validation.
+**CRITICAL Rules:**
+1. **Always validate**: Call `validate_mermaid` on ALL diagrams before showing to users
+2. **Always search docs**: Call `search_resource` to find syntax and examples from official Mermaid documentation before creating diagrams
+3. **Honor user requests**: If user asks for specific diagram types (e.g., "sequence and flowchart"), create ALL requested types
 
 ## Standard Workflow
 
 **Creating new diagrams:**
-1. Choose appropriate diagram type (flowchart, sequence, class, etc.)
-2. Use `search_resource` to find syntax and examples from official Mermaid docs
-3. Build diagram with descriptive, human-readable node names (e.g., `UserService` not `US`)
-4. Use modern features: subgraphs for grouping, classDef for styling, labeled edges for clarity
-5. Call `validate_mermaid` (REQUIRED)
-6. Fix errors if needed and re-validate
+1. **REQUIRED**: Call `search_resource({ query: "<diagram_type> syntax examples" })` to find official documentation
+2. Choose appropriate diagram type(s) - if user specifies multiple types, create all of them
+3. Review search results for syntax patterns and working examples
+4. Build diagram with descriptive, human-readable node names (e.g., `UserService` not `US`)
+5. Use modern features: subgraphs for grouping, classDef for styling, labeled edges for clarity
+6. **REQUIRED**: Call `validate_mermaid` before presenting
+7. Fix errors if needed and re-validate
 
 **Modifying existing diagrams:**
 1. Read existing diagram
-2. Use `validate_mermaid` to identify issues
-3. Use `search_resource` for correct syntax from official docs
+2. **REQUIRED**: Call `validate_mermaid` to identify issues
+3. **REQUIRED**: Call `search_resource({ query: "specific syntax issue" })` for correct syntax from official docs
 4. Apply fixes with improved readability
-5. Call `validate_mermaid` again (REQUIRED)
+5. **REQUIRED**: Call `validate_mermaid` again to confirm fix
 
 ## Available Tools
 
@@ -209,20 +213,22 @@ flowchart LR
 
 ## Quick Reference
 
-**Complete workflow for any Mermaid task:**
-1. Choose diagram type (use `list_diagram_types`)
-2. Search for syntax (use `search_resource`)
-3. Get examples (use `get_examples`)
-4. Build/modify diagram
-5. **VALIDATE (REQUIRED)** - Call `validate_mermaid`
-6. Fix errors using error messages + `search_resource`
-7. **RE-VALIDATE** after fixes
-8. Present to user only after validation passes
+**Complete workflow for any Mermaid task (DO NOT SKIP STEPS):**
+1. **REQUIRED**: Call `search_resource({ query: "<diagram_type> syntax" })` to find official documentation
+2. Review search results for syntax patterns and examples
+3. If user requests multiple diagram types (e.g., "sequence AND flowchart"), create ALL requested types
+4. Build diagram(s) with human-readable names and modern features
+5. **REQUIRED**: Call `validate_mermaid` on each diagram before presenting
+6. Fix errors if any using error messages + `search_resource`
+7. **REQUIRED**: Re-validate after fixes
+8. Present ALL diagrams to user only after validation passes
 
 **Best practices:**
-- Validate before presenting (mandatory)
+- ALWAYS call `search_resource` first to query official Mermaid docs (mandatory)
+- ALWAYS validate before presenting (mandatory)
+- If user specifies multiple diagram types, create ALL of them (mandatory)
 - Build incrementally, validate frequently
 - Use comments (`%% comment`) for documentation
-- Use clear, meaningful node identifiers
+- Use clear, meaningful node identifiers (e.g., `AuthService` not `AS`)
 - Use subgraphs for organization
-- Search first, don't guess syntax
+- Never guess syntax - search first
