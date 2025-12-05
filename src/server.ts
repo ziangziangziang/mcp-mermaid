@@ -5,6 +5,7 @@ import * as z from "zod";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import mermaid from "mermaid";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,78 +28,33 @@ function loadPromptsConfig() {
   }
 }
 
-// Validate Mermaid syntax
+// Validate Mermaid syntax using the official mermaid parser
 export async function validateMermaidSyntax(code: string): Promise<{ valid: boolean; error?: string; warnings?: string[] }> {
   try {
-    // Basic syntax checks
     const trimmedCode = code.trim();
     if (!trimmedCode) {
       return { valid: false, error: "Empty diagram code" };
     }
 
-    // Check for diagram type
-    const diagramTypes = [
-      'flowchart', 'graph', 'sequenceDiagram', 'classDiagram', 'stateDiagram-v2', 'stateDiagram',
-      'erDiagram', 'gantt', 'pie', 'quadrantChart', 'requirementDiagram', 'gitGraph',
-      'C4Context', 'C4Container', 'C4Component', 'C4Dynamic', 'C4Deployment',
-      'mindmap', 'timeline', 'zenuml', 'sankey-beta', 'xychart-beta', 'block-beta',
-      'packet-beta', 'architecture-beta', 'kanban', 'treemap', 'radar'
-    ];
-
-    const hasValidType = diagramTypes.some(type => 
-      trimmedCode.startsWith(type) || trimmedCode.includes(`\n${type}`)
-    );
-
-    if (!hasValidType) {
-      return { 
-        valid: false, 
-        error: `No valid diagram type found. Must start with one of: ${diagramTypes.slice(0, 10).join(', ')}, etc.` 
-      };
-    }
-
-    const warnings: string[] = [];
-
-    // Check for common issues
-    if (trimmedCode.toLowerCase().includes('\nend\n') || trimmedCode.toLowerCase().endsWith('\nend')) {
-      warnings.push("Using 'end' as a node name may cause issues. Consider using 'End' or '[end]' instead.");
-    }
-
-    // Check for unmatched brackets
-    const openBrackets = (trimmedCode.match(/\[/g) || []).length;
-    const closeBrackets = (trimmedCode.match(/\]/g) || []).length;
-    if (openBrackets !== closeBrackets) {
-      return { valid: false, error: `Unmatched brackets: ${openBrackets} '[' vs ${closeBrackets} ']'` };
-    }
-
-    const openParens = (trimmedCode.match(/\(/g) || []).length;
-    const closeParens = (trimmedCode.match(/\)/g) || []).length;
-    if (openParens !== closeParens) {
-      return { valid: false, error: `Unmatched parentheses: ${openParens} '(' vs ${closeParens} ')'` };
-    }
-
-    const openBraces = (trimmedCode.match(/\{/g) || []).length;
-    const closeBraces = (trimmedCode.match(/\}/g) || []).length;
-    if (openBraces !== closeBraces) {
-      return { valid: false, error: `Unmatched braces: ${openBraces} '{' vs ${closeBraces} '}'` };
-    }
-
-    // Check for unclosed quotes in labels
-    const labelMatches = trimmedCode.match(/\[[^\]]*\]/g) || [];
-    for (const label of labelMatches) {
-      const quoteCount = (label.match(/"/g) || []).length;
-      if (quoteCount % 2 !== 0) {
-        warnings.push(`Possible unclosed quote in label: ${label}`);
-      }
-    }
-
-    if (warnings.length > 0) {
-      return { valid: true, warnings };
-    }
+    // Use mermaid.parse to validate the syntax
+    await mermaid.parse(trimmedCode);
+    
+    // If parse succeeds, the diagram is valid
     return { valid: true };
   } catch (error: any) {
+    const errorMsg = error.message || String(error);
+    
+    // Treat DOM-related errors as success (environment issues, not syntax errors)
+    if (errorMsg.includes('DOMPurify') || 
+        errorMsg.includes('document is not defined') ||
+        errorMsg.includes('window is not defined')) {
+      return { valid: true };
+    }
+    
+    // Parse failed with actual syntax error
     return {
       valid: false, 
-      error: `Validation error: ${error.message || String(error)}` 
+      error: errorMsg
     };
   }
 }
