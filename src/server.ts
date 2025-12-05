@@ -232,9 +232,9 @@ export function buildMermaidMcpServer() {
     "search_resource",
     {
       title: "Search Mermaid Documentation",
-      description: "**REQUIRED BEFORE CREATING DIAGRAMS**: Search the official Mermaid documentation for syntax patterns, keywords, or diagram types. Returns matching lines with context from official docs. MUST be called before creating any diagram. After finding syntax, ALWAYS validate the final diagram with validate_mermaid tool.",
+      description: "**REQUIRED BEFORE CREATING DIAGRAMS**: Search the official Mermaid documentation for syntax patterns, keywords, or diagram types. Returns matching lines with context from official docs. MUST be called before creating any diagram. Use SINGLE-TERM queries for best results: 'flowchart' (12+ results), 'sequenceDiagram' (6+ results), 'subgraph', 'arrow'. AVOID multi-word queries like 'flowchart syntax' (0 results). After finding syntax, ALWAYS validate the final diagram with validate_mermaid tool.",
       inputSchema: z.object({
-        query: z.string().min(1).describe("Text to search for (e.g., 'flowchart syntax', 'sequenceDiagram examples', 'class relationships')"),
+        query: z.string().min(1).describe("SINGLE-TERM search query. Good: 'flowchart', 'sequenceDiagram', 'subgraph', 'arrow'. Bad: 'flowchart syntax', 'flowchart syntax mermaid' (returns 0 results). Use exact diagram type names like 'sequenceDiagram' (camelCase) or feature names."),
         caseSensitive: z.boolean().optional().default(false).describe("Whether the search is case-sensitive"),
         maxResults: z.number().optional().default(50).describe("Maximum matches to return"),
         contextLines: z.number().optional().default(3).describe("Number of lines to show before and after each match for context"),

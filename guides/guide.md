@@ -10,7 +10,10 @@
 ## Standard Workflow
 
 **Creating new diagrams:**
-1. **REQUIRED**: Call `search_resource({ query: "<diagram_type> syntax examples" })` to find official documentation
+1. **REQUIRED**: Call `search_resource` to find official documentation:
+   - For flowcharts: `search_resource({ query: "flowchart", maxResults: 5 })`
+   - For sequence: `search_resource({ query: "sequenceDiagram", maxResults: 5 })`
+   - For specific features: `search_resource({ query: "subgraph" })` or `search_resource({ query: "arrow" })`
 2. Choose appropriate diagram type(s) - if user specifies multiple types, create all of them
 3. Review search results for syntax patterns and working examples
 4. Build diagram with descriptive, human-readable node names (e.g., `UserService` not `US`)
@@ -21,7 +24,9 @@
 **Modifying existing diagrams:**
 1. Read existing diagram
 2. **REQUIRED**: Call `validate_mermaid` to identify issues
-3. **REQUIRED**: Call `search_resource({ query: "specific syntax issue" })` for correct syntax from official docs
+3. **REQUIRED**: Call `search_resource` for correct syntax:
+   - For syntax errors: `search_resource({ query: "<diagram_type>" })` (e.g., "flowchart", "sequence")
+   - For specific features: `search_resource({ query: "<feature>" })` (e.g., "styling", "arrow types")
 4. Apply fixes with improved readability
 5. **REQUIRED**: Call `validate_mermaid` again to confirm fix
 
@@ -65,16 +70,40 @@
 
 ## Syntax Reference
 
-Use MCP tools to search the official Mermaid documentation:
-- `search_resource({ query: "flowchart" })` - Search for flowchart syntax (keep queries simple!)
-- `search_resource({ query: "sequence" })` - Search for sequence diagram syntax
-- `search_resource({ query: "subgraph" })` - Search for specific features
+### What to Search For
 
-**Query Tips**:
-- Use **simple, specific terms** like "flowchart", "sequence", "arrow types", "subgraph"
-- AVOID multi-word queries like "flowchart syntax mermaid" (too specific, fewer matches)
-- AVOID conversational queries like "how to create"
-- The docs are already Mermaid-specific, so don't include "mermaid" in queries
+**Before creating ANY diagram, search for the diagram type:**
+
+| Diagram Type | Search Query | Example |
+|--------------|--------------|------|
+| Flowchart | `search_resource({ query: "flowchart", maxResults: 5 })` | Workflows, processes |
+| Sequence | `search_resource({ query: "sequenceDiagram", maxResults: 5 })` | Interactions, API calls |
+| Class | `search_resource({ query: "classDiagram", maxResults: 5 })` | OO design |
+| State | `search_resource({ query: "stateDiagram", maxResults: 5 })` | State machines |
+| ER | `search_resource({ query: "erDiagram", maxResults: 5 })` | Database schema |
+| Gantt | `search_resource({ query: "gantt", maxResults: 5 })` | Project timeline |
+
+**For specific features, search by feature name:**
+
+| Feature | Search Query | Use Case |
+|---------|--------------|----------|
+| Subgraphs | `search_resource({ query: "subgraph" })` | Grouping nodes |
+| Styling | `search_resource({ query: "classDef" })` | Colors and styles |
+| Arrow types | `search_resource({ query: "arrow" })` | Different edge types |
+| Participants | `search_resource({ query: "participant" })` | Sequence diagram actors |
+| Loop/Alt | `search_resource({ query: "loop" })` or `"alt"` | Sequence control flow |
+
+**Query Rules (CRITICAL):**
+- ✅ **DO**: Use single terms: `"flowchart"`, `"sequenceDiagram"`, `"subgraph"`, `"arrow"`
+- ✅ **DO**: Use exact diagram type names: `"sequenceDiagram"` (camelCase as it appears in code)
+- ❌ **DON'T**: Multi-word queries: `"flowchart syntax"`, `"flowchart syntax mermaid"` (0 results!)
+- ❌ **DON'T**: Conversational: `"how to create flowchart"`, `"show me examples"`
+- ❌ **DON'T**: Include "mermaid" in queries (docs are already Mermaid-specific)
+
+**Why single-term queries work better:**
+- `"flowchart syntax"` requires both words on same line → 0 results
+- `"flowchart"` finds all flowchart documentation → 12+ results
+- `"sequenceDiagram"` finds all sequence docs → 6+ results
 
 The search returns matching lines with surrounding context from the official Mermaid docs.
 
@@ -221,7 +250,10 @@ flowchart LR
 ## Quick Reference
 
 **Complete workflow for any Mermaid task (DO NOT SKIP STEPS):**
-1. **REQUIRED**: Call `search_resource({ query: "<diagram_type>" })` with SIMPLE query (e.g., "flowchart", "sequence")
+1. **REQUIRED**: Call `search_resource` with single-term query:
+   - `search_resource({ query: "flowchart", maxResults: 5 })` → 12+ results ✅
+   - `search_resource({ query: "sequenceDiagram", maxResults: 5 })` → 6+ results ✅
+   - `search_resource({ query: "flowchart syntax" })` → 0 results ❌
 2. Review search results for syntax patterns and examples
 3. If user requests multiple diagram types (e.g., "sequence AND flowchart"), create ALL requested types
 4. Build diagram(s) with human-readable names and modern features
@@ -231,9 +263,9 @@ flowchart LR
 8. Present ALL diagrams to user only after validation passes
 
 **Search query best practices:**
-- Use simple terms: "flowchart", "sequence", "arrow", "subgraph", "styling"
-- DON'T use: "flowchart syntax mermaid" (too many words)
-- DON'T use: "how to create flowchart" (too conversational)
+- ✅ DO use: `"flowchart"`, `"sequenceDiagram"`, `"subgraph"`, `"arrow"`
+- ❌ DON'T use: `"flowchart syntax"`, `"flowchart syntax mermaid"` (0 results!)
+- ❌ DON'T use: `"how to create flowchart"`, `"show me examples"`
 
 **Validation and tool usage:**
 - ALWAYS call `search_resource` first to query official Mermaid docs (mandatory)
