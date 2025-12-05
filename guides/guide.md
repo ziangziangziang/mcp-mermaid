@@ -7,27 +7,24 @@
 ## Standard Workflow
 
 **Creating new diagrams:**
-1. Use `list_diagram_types` to choose appropriate type
-2. Use `get_examples` for working templates
-3. Use `search_resource` for specific syntax
-4. Build diagram
+1. Choose appropriate diagram type (flowchart, sequence, class, etc.)
+2. Use `search_resource` to find syntax and examples from official Mermaid docs
+3. Build diagram with descriptive, human-readable node names (e.g., `UserService` not `US`)
+4. Use modern features: subgraphs for grouping, classDef for styling, labeled edges for clarity
 5. Call `validate_mermaid` (REQUIRED)
 6. Fix errors if needed and re-validate
 
 **Modifying existing diagrams:**
 1. Read existing diagram
 2. Use `validate_mermaid` to identify issues
-3. Use `search_resource` for correct syntax
-4. Apply fixes
+3. Use `search_resource` for correct syntax from official docs
+4. Apply fixes with improved readability
 5. Call `validate_mermaid` again (REQUIRED)
 
 ## Available Tools
 
-1. **`validate_mermaid`** - REQUIRED: Verify syntax before presenting
-2. **`search_resource`** - Find syntax patterns in documentation
-3. **`list_diagram_types`** - List available diagram types
-4. **`get_examples`** - Get working examples for specific types
-5. **`analyze_diagram`** - Get improvement suggestions
+1. **`validate_mermaid`** - REQUIRED: Verify syntax before presenting to users
+2. **`search_resource`** - Search official Mermaid documentation for syntax patterns and examples
 
 ## Diagram Type Selection
 
@@ -126,12 +123,89 @@ Check that all `[]`, `{}`, `()`, and `"` are balanced before validation.
 - Use invisible edges (`A ~~~ B`) for spacing
 - Prefer descriptive but concise node names
 
+## Best Practices for Modern, Professional Diagrams
+
+### Use Human-Readable Names
+- Full words over abbreviations: `UserAuthenticationService` not `UAS`
+- Descriptive labels: `["API Gateway\n(Load Balancer)"]` provides context
+- Clear participants: `participant Frontend as "React Application"`
+
+### Leverage Modern Features
+- **Subgraphs with titles**: Group components by layer or domain
+  ```mermaid
+  subgraph Backend["Backend Services"]
+      API[REST API]
+      DB[(Database)]
+  end
+  ```
+- **classDef styling**: Color-code by type, layer, or importance
+  ```mermaid
+  classDef frontend fill:#e1f5ff,stroke:#01579b
+  classDef backend fill:#fff3e0,stroke:#e65100
+  class UI,Client frontend
+  class API,Auth backend
+  ```
+- **Labeled edges**: Show data flow or interaction type
+  ```mermaid
+  User -->|"HTTP POST /api/login"| API
+  API -->|"JWT token"| User
+  ```
+- **Node shapes**: Use appropriate shapes for semantics
+  - `[(Database)]` for data stores
+  - `([User])` for actors
+  - `{{Decision}}` for decision points
+  - `[/Input/]` or `[\Output\]` for I/O
+
+### Backward Compatibility
+- Stick to stable diagram types: `flowchart`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`
+- Avoid beta features (`-beta` suffix) in production diagrams
+- Test complex diagrams with `validate_mermaid` before committing
+
+### Example: Professional Flowchart
+```mermaid
+flowchart LR
+    subgraph Client["Client Layer"]
+        User([User])
+        Browser["Web Browser"]
+    end
+    
+    subgraph Application["Application Layer"]
+        API["REST API Gateway"]
+        Auth["Authentication Service"]
+        Logic["Business Logic"]
+    end
+    
+    subgraph Data["Data Layer"]
+        Cache[("Redis Cache")]
+        DB[("PostgreSQL Database")]
+    end
+    
+    User -->|"Opens app"| Browser
+    Browser -->|"HTTPS Request"| API
+    API -->|"Verify token"| Auth
+    Auth -->|"Query user"| DB
+    API -->|"Process"| Logic
+    Logic -->|"Check cache"| Cache
+    Logic -->|"Query data"| DB
+    DB -->|"Results"| Logic
+    Logic -->|"JSON Response"| API
+    API -->|"Render"| Browser
+    
+    classDef client fill:#f0f9ff,stroke:#0369a1
+    classDef app fill:#fef3c7,stroke:#d97706
+    classDef data fill:#fce7f3,stroke:#be185d
+    class User,Browser client
+    class API,Auth,Logic app
+    class Cache,DB data
+```
+
 ## Behavior Principles
 
 - **Preserve intent** - Keep original logical flow when fixing diagrams
 - **Be explicit** - Explain syntax and structural changes
-- **Respect choice** - Honor user's diagram type preference
-- **Always use tools** - Never work without MCP tools
+- **Use search_resource** - Query official docs instead of guessing syntax
+- **Human-readable names** - Use descriptive variable and node names
+- **Modern features** - Leverage subgraphs, styling, and labeled edges for clarity
 
 ## Quick Reference
 
