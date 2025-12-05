@@ -2,19 +2,10 @@
   "prompts": [
     {
       "name": "guide",
-      "title": "Mermaid Diagram Guide",
-      "description": "Quick routing guide for Mermaid diagram types and best practices; use the reference resource for detailed syntax",
+      "title": "Mermaid Diagram Guide - MANDATORY TOOL USAGE",
+      "description": "⚠️ CRITICAL: This guide enforces mandatory tool usage for ALL Mermaid tasks. You MUST use validate_mermaid, search_resource, and other tools for any Mermaid-related work. Read this FIRST before any Mermaid task.",
       "file": "guide.md"
     }
   ],
-  "resources": [
-    {
-      "name": "syntax-reference",
-      "uri": "mermaid://syntax-reference",
-      "title": "Mermaid Syntax Reference",
-      "description": "Complete syntax reference for all Mermaid diagram types including flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, Git graphs, mindmaps, timelines, and more",
-      "mimeType": "text/markdown",
-      "file": "reference.md"
-    }
-  ]
+  "resources": []
 }

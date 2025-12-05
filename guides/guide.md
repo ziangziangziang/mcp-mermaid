@@ -1,200 +1,154 @@
-# Mermaid Diagram Guide
+# Mermaid Diagram Generation – Core Instructions
 
-Use this guide to quickly understand which Mermaid diagram type to use. For detailed syntax, search the `syntax-reference` resource.
+## MANDATORY: Always Validate Before Presenting
 
----
+**CRITICAL:** Call `validate_mermaid` on ALL diagrams before showing to users. Never skip validation.
 
-## 🎯 Choosing the Right Diagram
+## Standard Workflow
 
-### **Flow & Process Diagrams**
+**Creating new diagrams:**
+1. Use `list_diagram_types` to choose appropriate type
+2. Use `get_examples` for working templates
+3. Use `search_resource` for specific syntax
+4. Build diagram
+5. Call `validate_mermaid` (REQUIRED)
+6. Fix errors if needed and re-validate
 
-**When to use:**
-- General workflows and processes
-- Decision trees and algorithms
-- System flows
+**Modifying existing diagrams:**
+1. Read existing diagram
+2. Use `validate_mermaid` to identify issues
+3. Use `search_resource` for correct syntax
+4. Apply fixes
+5. Call `validate_mermaid` again (REQUIRED)
 
-**Diagram Types:**
-- **Flowchart** → Most versatile, use for general processes
-- **Sequence Diagram** → Show interactions between actors/systems over time
-- **State Diagram** → Model state transitions and lifecycles
-- **User Journey** → Map user experiences and touchpoints
+## Available Tools
 
----
+1. **`validate_mermaid`** - REQUIRED: Verify syntax before presenting
+2. **`search_resource`** - Find syntax patterns in documentation
+3. **`list_diagram_types`** - List available diagram types
+4. **`get_examples`** - Get working examples for specific types
+5. **`analyze_diagram`** - Get improvement suggestions
 
-### **Structure & Relationships**
+## Diagram Type Selection
 
-**When to use:**
-- Software architecture
-- Data models
-- System components
+### Flow/Process
+- **Flowchart** - Workflows, algorithms, decision trees
+- **Sequence Diagram** - Interactions over time between actors/systems
+- **State Diagram** - Lifecycle and state transitions
+- **User Journey** - User steps and touchpoints
 
-**Diagram Types:**
-- **Class Diagram** → Object-oriented design, show classes and relationships
-- **ER Diagram** → Database schemas, entity relationships
-- **C4 Diagram** → Software architecture at different zoom levels
-- **Architecture Diagram** → System architecture with services and groups
-- **Block Diagram** → Simple block-based layouts
+### Structure/Architecture
+- **Class Diagram** - OO design, classes and relations
+- **ER Diagram** - Database entities and relationships
+- **C4/Architecture/Block** - System architecture, services, components
 
----
+### Data Visualization
+- **Pie** - Parts of a whole
+- **XY/Line/Bar** - Trends, time series, numeric comparison
+- **Quadrant** - 2x2 matrices
+- **Sankey** - Flows between nodes
+- **Treemap** - Hierarchical values
+- **Radar** - Multi-dimensional comparison
 
-### **Data Visualization**
+### Planning/Timeline
+- **Gantt** - Project tasks and dependencies
+- **Timeline** - Milestones and historical events
+- **Kanban** - Task boards (To Do/Doing/Done)
 
-**When to use:**
-- Present metrics and analytics
-- Compare data points
-- Show distributions
+### Special
+- **Git Graph** - Commits, branches, merges
+- **Mindmap** - Hierarchical ideas
+- **Requirement/Packet/ZenUML** - Requirements, network packets, alternate sequence syntax
 
-**Diagram Types:**
-- **Pie Chart** → Show proportions (parts of a whole)
-- **XY Chart** → Plot coordinate data, trends over time
-- **Quadrant Chart** → 2x2 prioritization matrices
-- **Sankey Diagram** → Flow quantities between nodes
-- **Treemap** → Hierarchical data with area sizes
-- **Radar Chart** → Multi-dimensional comparisons
+**Default:** Use flowchart for processes, block/architecture diagram for systems.
 
----
+## Syntax Reference
 
-### **Planning & Timeline**
+Use MCP tools to search the official Mermaid documentation:
+- `search_resource({ query: "flowchart syntax" })` - Search across all Mermaid documentation files
+- `get_examples({ diagramType: "sequenceDiagram" })` - Get working examples
 
-**When to use:**
-- Project management
-- Historical sequences
-- Schedule tracking
+The search returns matching lines with surrounding context from the official Mermaid docs.
 
-**Diagram Types:**
-- **Gantt Chart** → Project schedules with tasks and dependencies
-- **Timeline** → Historical events or milestones
-- **Kanban** → Task boards with columns
+## Validation Protocol
 
----
+**Before returning ANY diagram:**
 
-### **Specialized Use Cases**
-
-- **Git Graph** → Visualize git commits, branches, merges
-- **Mindmap** → Brainstorming, hierarchical concepts
-- **Requirement Diagram** → Requirements engineering
-- **Packet Diagram** → Network packet structures
-- **ZenUML** → Alternative sequence diagram syntax
-
----
-
-## 🚀 Quick Start
-
-### 1. **Basic Structure**
-
-All Mermaid diagrams start with a diagram type:
-
-```mermaid
-flowchart LR
-    Start --> End
+```javascript
+validate_mermaid({ code: "FULL DIAGRAM SOURCE HERE" })
 ```
 
-### 2. **Search for Syntax**
+**If validation fails:**
+1. Read error message
+2. Use `search_resource` for correct syntax
+3. Fix the diagram
+4. Run `validate_mermaid` again
+5. Repeat until validation passes
 
-Use `search_resource` to find specific syntax:
-- Search for "flowchart arrows" to find arrow types
-- Search for "sequence notes" to add notes
-- Search for "class relationships" for UML connections
+**Only return diagrams that pass validation.**
 
-### 3. **Validate Before Rendering**
+## Critical Syntax Rules
 
-Use `validate_mermaid` tool to check syntax before using:
-- Catches syntax errors
-- Identifies invalid node names
-- Checks for balanced brackets/quotes
+### Quote Complex Labels
+Quote labels containing spaces, `+`, `,`, `:`, `/`, `(`, `)`, etc.
+Applies to node labels, subgraph titles, and edge labels.
 
----
+```mermaid
+A["Agent (Planner + Orchestrator)"]
+subgraph MCPLayer["MCP Layer\n(Model Context Protocol)"]
+A -->|"tool invocation / calls"| B
+```
 
-## ⚠️ Common Issues & Solutions
+### Reserved Words
+Don't use bare reserved words like `end` as nodes.
 
-### **Syntax Errors**
+```mermaid
+End
+or
+endNode["end"]
+```
 
-1. **Reserved word "end"**
-   - ❌ `flowchart LR\n    start --> end`
-   - ✅ `flowchart LR\n    start --> End` or `start --> [end]`
+### classDef Styling
+Use colons, not equals:
 
-2. **Special characters in labels**
-   - ❌ `A --> B[Hello: World]`
-   - ✅ `A --> B["Hello: World"]`
+```mermaid
+classDef highlight fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px;
+class RAG highlight;
+```
 
-3. **Missing quotes for complex labels**
-   - Use quotes for labels with spaces, colons, or special chars
-   - Use backticks for markdown formatting: `` ["`**Bold** text`"] ``
+### Balanced Quotes and Brackets
+Check that all `[]`, `{}`, `()`, and `"` are balanced before validation.
 
-### **Visual Issues**
+## Layout Guidelines
 
-1. **Diagram too wide/tall**
-   - Change direction: `LR`, `RL`, `TB`, `BT`
-   - Use subgraphs to organize
+- Choose direction (`LR`, `RL`, `TB`, `BT`) to optimize diagram dimensions
+- Use subgraphs to group related nodes
+- Use invisible edges (`A ~~~ B`) for spacing
+- Prefer descriptive but concise node names
 
-2. **Overlapping nodes**
-   - Add more spacing in your structure
-   - Use invisible edges: `A ~~~ B`
+## Behavior Principles
 
-3. **Labels not showing**
-   - Check for balanced quotes
-   - Verify no special characters without escaping
+- **Preserve intent** - Keep original logical flow when fixing diagrams
+- **Be explicit** - Explain syntax and structural changes
+- **Respect choice** - Honor user's diagram type preference
+- **Always use tools** - Never work without MCP tools
 
----
+## Quick Reference
 
-## 🔧 Tools Available
+**Complete workflow for any Mermaid task:**
+1. Choose diagram type (use `list_diagram_types`)
+2. Search for syntax (use `search_resource`)
+3. Get examples (use `get_examples`)
+4. Build/modify diagram
+5. **VALIDATE (REQUIRED)** - Call `validate_mermaid`
+6. Fix errors using error messages + `search_resource`
+7. **RE-VALIDATE** after fixes
+8. Present to user only after validation passes
 
-1. **`validate_mermaid`** - Check syntax and catch errors
-2. **`search_resource`** - Find syntax patterns in reference
-3. **`list_diagram_types`** - See all available diagram types
-4. **`get_examples`** - Get working examples for specific diagram types
-
----
-
-## 📋 Quick Reference Cheat Sheet
-
-### Flowchart Directions
-- `LR` = Left to Right
-- `TB`/`TD` = Top to Bottom
-- `RL` = Right to Left
-- `BT` = Bottom to Top
-
-### Common Node Shapes
-- `[Text]` = Rectangle
-- `(Text)` = Rounded
-- `{Text}` = Diamond
-- `((Text))` = Circle
-- `[(Text)]` = Database
-
-### Arrow Types
-- `-->` = Solid arrow
-- `-.->` = Dotted arrow
-- `==>` = Thick arrow
-- `---` = Line (no arrow)
-
-### Sequence Messages
-- `->>` = Solid with arrow
-- `-->>` = Dotted with arrow
-- `-)` = Async (no arrow)
-- `-x` = Cross end
-
----
-
-## 💡 Best Practices
-
-1. **Start Simple** - Build incrementally, test often
-2. **Use Comments** - Add `%% comment` for documentation
-3. **Consistent IDs** - Use clear, meaningful node identifiers
-4. **Group Related** - Use subgraphs/sections for organization
-5. **Search First** - Use `search_resource` to find syntax quickly
-6. **Validate Often** - Run `validate_mermaid` before finalizing
-
----
-
-## 🔍 How to Work
-
-1. **Choose diagram type** - Use routing above
-2. **Search for syntax** - `search_resource({query: "your need"})`
-3. **Build incrementally** - Start with core structure
-4. **Validate** - Use `validate_mermaid` to check
-5. **Refine** - Add styling and details
-6. **Fix issues** - Use validation errors to debug
-
----
-
-**Need help?** Search the reference resource or use the validation tool to identify issues!
+**Best practices:**
+- Validate before presenting (mandatory)
+- Build incrementally, validate frequently
+- Use comments (`%% comment`) for documentation
+- Use clear, meaningful node identifiers
+- Use subgraphs for organization
+- Search first, don't guess syntax

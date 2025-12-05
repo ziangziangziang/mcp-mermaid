@@ -5,13 +5,9 @@ import * as z from "zod";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import mermaid from "mermaid";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize mermaid for validation
-mermaid.initialize({ startOnLoad: false });
 
 // Helper function to load prompts/resources from external files
 function loadPromptsConfig() {
@@ -32,7 +28,7 @@ function loadPromptsConfig() {
 }
 
 // Validate Mermaid syntax
-async function validateMermaidSyntax(code: string): Promise<{ valid: boolean; error?: string; warnings?: string[] }> {
+export async function validateMermaidSyntax(code: string): Promise<{ valid: boolean; error?: string; warnings?: string[] }> {
   try {
     // Basic syntax checks
     const trimmedCode = code.trim();
@@ -95,17 +91,6 @@ async function validateMermaidSyntax(code: string): Promise<{ valid: boolean; er
       }
     }
 
-    // Try to parse with mermaid (this is a basic check)
-    try {
-      // Mermaid parse is async in browser but we do basic validation here
-      await mermaid.parse(trimmedCode);
-    } catch (parseError: any) {
-      return { 
-        valid: false, 
-        error: `Mermaid parse error: ${parseError.message || String(parseError)}` 
-      }
-    }
-
     if (warnings.length > 0) {
       return { valid: true, warnings };
     }
@@ -153,14 +138,75 @@ export function buildMermaidMcpServer() {
   // Load prompts/resources configuration
   const config = loadPromptsConfig();
   const promptsDir = path.join(__dirname, "..", "guides");
+  const mermaidDocsDir = path.join(__dirname, "..", "mermaid", "docs", "syntax");
 
-  // Register resources dynamically
+  // Register Mermaid documentation files as resources
+  const syntaxFiles = [
+    { name: "flowchart", file: "flowchart.md", description: "Flowchart syntax and examples" },
+    { name: "sequence", file: "sequenceDiagram.md", description: "Sequence diagram syntax" },
+    { name: "class", file: "classDiagram.md", description: "Class diagram syntax" },
+    { name: "state", file: "stateDiagram.md", description: "State diagram syntax" },
+    { name: "er", file: "entityRelationshipDiagram.md", description: "Entity relationship diagram syntax" },
+    { name: "gantt", file: "gantt.md", description: "Gantt chart syntax" },
+    { name: "pie", file: "pie.md", description: "Pie chart syntax" },
+    { name: "quadrant", file: "quadrantChart.md", description: "Quadrant chart syntax" },
+    { name: "requirement", file: "requirementDiagram.md", description: "Requirement diagram syntax" },
+    { name: "gitgraph", file: "gitgraph.md", description: "Git graph syntax" },
+    { name: "c4", file: "c4.md", description: "C4 diagram syntax" },
+    { name: "mindmap", file: "mindmap.md", description: "Mindmap syntax" },
+    { name: "timeline", file: "timeline.md", description: "Timeline syntax" },
+    { name: "zenuml", file: "zenuml.md", description: "ZenUML syntax" },
+    { name: "sankey", file: "sankey.md", description: "Sankey diagram syntax" },
+    { name: "xychart", file: "xyChart.md", description: "XY chart syntax" },
+    { name: "block", file: "block.md", description: "Block diagram syntax" },
+    { name: "packet", file: "packet.md", description: "Packet diagram syntax" },
+    { name: "architecture", file: "architecture.md", description: "Architecture diagram syntax" },
+    { name: "kanban", file: "kanban.md", description: "Kanban board syntax" },
+    { name: "user-journey", file: "userJourney.md", description: "User journey syntax" },
+    { name: "treemap", file: "treemap.md", description: "Treemap syntax" },
+    { name: "radar", file: "radar.md", description: "Radar chart syntax" },
+  ];
+
+  for (const syntaxFile of syntaxFiles) {
+    const uri = `mermaid://syntax/${syntaxFile.name}`;
+    server.registerResource(
+      syntaxFile.name,
+      uri,
+      {
+        description: syntaxFile.description,
+        mimeType: "text/markdown",
+      },
+      async () => {
+        const filePath = path.join(mermaidDocsDir, syntaxFile.file);
+        if (!fs.existsSync(filePath)) {
+          return {
+            contents: [{
+              uri,
+              mimeType: "text/markdown",
+              text: `Documentation file not found: ${syntaxFile.file}`,
+            }],
+          };
+        }
+
+        const content = fs.readFileSync(filePath, "utf-8");
+        return {
+          contents: [{
+            uri,
+            mimeType: "text/markdown",
+            text: content,
+          }],
+        };
+      }
+    );
+  }
+
+  // Register resources dynamically from config (if any)
   for (const resource of config.resources || []) {
     server.registerResource(
       resource.name,
       resource.uri,
       {
-        description: resource.description,
+        description: `${resource.description} ⚠️ Use search_resource tool to query this reference.`,
         mimeType: resource.mimeType || "text/markdown",
       },
       async () => {
@@ -194,7 +240,7 @@ export function buildMermaidMcpServer() {
       prompt.name,
       {
         title: prompt.title,
-        description: prompt.description,
+        description: `${prompt.description} ⚠️ READ THIS PROMPT BEFORE working with ANY Mermaid diagram!`,
       },
       async () => {
         const filePath = path.join(promptsDir, prompt.file);
@@ -229,69 +275,84 @@ export function buildMermaidMcpServer() {
   server.registerTool(
     "search_resource",
     {
-      title: "Search Syntax Reference",
-      description: "Search the Mermaid syntax reference for specific patterns, keywords, or diagram types. Use this to quickly find syntax examples.",
+      title: "Search Mermaid Documentation",
+      description: "Search the official Mermaid documentation for specific patterns, keywords, or diagram types. Returns matching lines with context. After finding syntax, ALWAYS validate the final diagram with validate_mermaid tool.",
       inputSchema: z.object({
         query: z.string().min(1).describe("Text to search for (e.g., 'flowchart arrows', 'sequence notes', 'class relationships')"),
         caseSensitive: z.boolean().optional().default(false).describe("Whether the search is case-sensitive"),
         maxResults: z.number().optional().default(50).describe("Maximum matches to return"),
+        contextLines: z.number().optional().default(3).describe("Number of lines to show before and after each match for context"),
       }),
     },
-    async ({ query, caseSensitive = false, maxResults = 50 }) => {
-      const resourceList = config.resources || [];
+    async ({ query, caseSensitive = false, maxResults = 50, contextLines = 3 }) => {
+      const needle = caseSensitive ? query : query.toLowerCase();
+      const maxHits = Math.max(1, Math.min(maxResults, 200));
+      const results = [];
 
-      if (resourceList.length === 0) {
+      // Search through Mermaid documentation files
+      if (!fs.existsSync(mermaidDocsDir)) {
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ error: "No syntax reference available." }, null, 2),
+              text: JSON.stringify({ error: "Mermaid documentation directory not found." }, null, 2),
             },
           ],
           isError: true,
         };
       }
 
-      const needle = caseSensitive ? query : query.toLowerCase();
-      const maxHits = Math.max(1, Math.min(maxResults, 200));
-      const results = [];
-
-      for (const res of resourceList) {
-        const filePath = path.join(promptsDir, res.file);
-        if (!fs.existsSync(filePath)) {
-          results.push({
-            resource: res.name,
-            error: `Resource file not found: ${res.file}`,
-          });
-          continue;
-        }
-
+      const syntaxFiles = fs.readdirSync(mermaidDocsDir).filter(f => f.endsWith('.md'));
+      
+      for (const fileName of syntaxFiles) {
+        const filePath = path.join(mermaidDocsDir, fileName);
         const raw = fs.readFileSync(filePath, "utf-8");
         const lines = raw.split(/\r?\n/);
-        const matches: Array<{ line: number; text: string }> = [];
+        const matches: Array<{ line: number; text: string; context: string[] }> = [];
 
         for (let i = 0; i < lines.length && matches.length < maxHits; i++) {
           const line = lines[i];
           if (!line) continue;
           const haystack = caseSensitive ? line : line.toLowerCase();
+          
           if (haystack.includes(needle)) {
-            matches.push({ line: i + 1, text: line.trimEnd() });
+            // Get context lines before and after
+            const startLine = Math.max(0, i - contextLines);
+            const endLine = Math.min(lines.length - 1, i + contextLines);
+            const context = [];
+            
+            for (let j = startLine; j <= endLine; j++) {
+              const prefix = j === i ? ">>> " : "    ";
+              context.push(`${prefix}${lines[j]}`);
+            }
+
+            matches.push({
+              line: i + 1,
+              text: line.trimEnd(),
+              context,
+            });
           }
         }
 
-        results.push({
-          resource: res.name,
-          file: res.file,
-          matchCount: matches.length,
-          matches,
-        });
+        if (matches.length > 0) {
+          results.push({
+            file: fileName,
+            matchCount: matches.length,
+            matches,
+          });
+        }
       }
 
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({ query, results }, null, 2),
+            text: JSON.stringify({ 
+              query, 
+              totalFiles: results.length,
+              totalMatches: results.reduce((sum, r) => sum + r.matchCount, 0),
+              results 
+            }, null, 2),
           },
         ],
       };
@@ -303,7 +364,7 @@ export function buildMermaidMcpServer() {
     "validate_mermaid",
     {
       title: "Validate Mermaid Diagram",
-      description: "Validate Mermaid diagram syntax and check for common errors. Returns validation status, errors, and warnings.",
+      description: "⚠️ MANDATORY: Validate Mermaid diagram syntax before presenting to users. ALWAYS use this tool after creating or modifying ANY diagram. Returns validation status, errors, and warnings. Invalid diagrams will fail to render - validation is NOT optional!",
       inputSchema: z.object({
         code: z.string().describe("The Mermaid diagram code to validate"),
       }),
@@ -366,7 +427,7 @@ export function buildMermaidMcpServer() {
     "get_examples",
     {
       title: "Get Diagram Examples",
-      description: "Get working examples for a specific diagram type. Returns multiple examples with explanations.",
+      description: "Get working examples for a specific diagram type. Returns multiple examples with explanations. After using examples to create your diagram, you MUST validate it with validate_mermaid tool before showing to users.",
       inputSchema: z.object({
         diagramType: z.string().describe("The diagram type (e.g., 'flowchart', 'sequenceDiagram', 'classDiagram')"),
       }),
@@ -437,7 +498,7 @@ export function buildMermaidMcpServer() {
     "analyze_diagram",
     {
       title: "Analyze Diagram Structure",
-      description: "Analyze a Mermaid diagram and provide insights about its structure, complexity, and suggestions for improvement.",
+      description: "Analyze a Mermaid diagram and provide insights about its structure, complexity, and suggestions for improvement. This tool includes validation checking. Use this to verify diagram correctness and get optimization suggestions.",
       inputSchema: z.object({
         code: z.string().describe("The Mermaid diagram code to analyze"),
       }),

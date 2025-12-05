@@ -4,6 +4,18 @@ Complete syntax reference for all Mermaid diagram types. Use `search_resource` t
 
 ---
 
+## ⚠️ CRITICAL VALIDATION REQUIREMENT
+
+**BEFORE presenting ANY Mermaid diagram to users:**
+
+1. **MUST** call `validate_mermaid` tool with the complete diagram code
+2. **MUST** fix any validation errors before showing the diagram
+3. **MUST** re-validate after making any corrections
+
+**Invalid diagrams will fail to render and frustrate users. Always validate!**
+
+---
+
 ## 🎯 Quick Navigation
 
 **Flow & Process:**
