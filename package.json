@@ -9,7 +9,7 @@
     "start": "node dist/httpServer.js",
     "start:http": "node dist/httpServer.js",
     "start:stdio": "node dist/server.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --forceExit"
   },
   "bin": {
     "mcp-mermaid": "dist/server.js"

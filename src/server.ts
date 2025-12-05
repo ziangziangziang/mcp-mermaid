@@ -3,12 +3,184 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import * as z from "zod";
 import * as fs from "fs";
+import { promises as fsPromises } from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import mermaid from "mermaid";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Global cache for documentation files
+const docsCache = new Map<string, string>();
+let docsCacheInitialized = false;
+
+// Initialize documentation cache at startup
+async function initDocsCache() {
+  if (docsCacheInitialized) return;
+  
+  const mermaidDocsDir = path.join(__dirname, "..", "mermaid", "docs", "syntax");
+  
+  if (!fs.existsSync(mermaidDocsDir)) {
+    console.error(`Documentation directory not found: ${mermaidDocsDir}`);
+    return;
+  }
+
+  try {
+    const files = await fsPromises.readdir(mermaidDocsDir);
+    const mdFiles = files.filter(f => f.endsWith('.md'));
+    
+    await Promise.all(
+      mdFiles.map(async (fileName) => {
+        const filePath = path.join(mermaidDocsDir, fileName);
+        const content = await fsPromises.readFile(filePath, 'utf-8');
+        docsCache.set(fileName, content);
+      })
+    );
+    
+    docsCacheInitialized = true;
+    console.error(`Initialized docs cache with ${docsCache.size} files`);
+  } catch (error) {
+    console.error('Failed to initialize docs cache:', error);
+  }
+}
+
+// Extract markdown section containing the search term
+function extractMarkdownSection(content: string, searchTerm: string, caseSensitive = false): string[] {
+  const lines = content.split(/\r?\n/);
+  const sections: string[] = [];
+  
+  const needle = caseSensitive ? searchTerm : searchTerm.toLowerCase();
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    
+    const haystack = caseSensitive ? line : line.toLowerCase();
+    
+    if (!haystack.includes(needle)) continue;
+    
+    // Found a match - find the closest header above
+    let headerIndex = i;
+    for (let j = i - 1; j >= 0; j--) {
+      const prevLine = lines[j];
+      if (prevLine && prevLine.match(/^#{1,6}\s/)) {
+        headerIndex = j;
+        break;
+      }
+    }
+    
+    // Find the end of this section (next header of same or higher level, or end of file)
+    const headerLine = lines[headerIndex];
+    const headerLevel = (headerLine && headerLine.match(/^#{1,6}/)) ? headerLine.match(/^#{1,6}/)![0].length : 3;
+    let endIndex = lines.length;
+    
+    for (let j = headerIndex + 1; j < lines.length; j++) {
+      const currentLine = lines[j];
+      if (!currentLine) continue;
+      
+      const match = currentLine.match(/^#{1,6}\s/);
+      if (match && match[0].length <= headerLevel) {
+        endIndex = j;
+        break;
+      }
+    }
+    
+    // Extract the section
+    const section = lines.slice(headerIndex, endIndex).join('\n');
+    sections.push(section);
+    
+    // Skip to end of this section to avoid duplicate matches
+    i = endIndex - 1;
+  }
+  
+  return sections;
+}
+
+interface SearchResult {
+  file: string;
+  matchCount: number;
+  mode: 'snippet' | 'full';
+  content: string;
+}
+
+// Search Mermaid documentation with smart snippets
+async function searchMermaidDocs(params: {
+  query: string;
+  diagram_type?: string;
+  mode?: 'snippet' | 'full';
+  caseSensitive?: boolean;
+  maxResults?: number;
+}): Promise<{
+  query: string;
+  totalFiles: number;
+  totalMatches: number;
+  results: SearchResult[];
+}> {
+  const { 
+    query, 
+    diagram_type, 
+    mode = 'snippet', 
+    caseSensitive = false,
+    maxResults = 10 
+  } = params;
+  
+  // Ensure cache is initialized
+  if (!docsCacheInitialized) {
+    await initDocsCache();
+  }
+  
+  const results: SearchResult[] = [];
+  const needle = caseSensitive ? query : query.toLowerCase();
+  let totalMatches = 0;
+  
+  for (const [fileName, content] of docsCache.entries()) {
+    // Filter by diagram type if specified
+    if (diagram_type) {
+      const baseName = fileName.replace('.md', '').toLowerCase();
+      if (!baseName.includes(diagram_type.toLowerCase())) {
+        continue;
+      }
+    }
+    
+    // Check if file contains the search term
+    const haystack = caseSensitive ? content : content.toLowerCase();
+    if (!haystack.includes(needle)) continue;
+    
+    // Count matches in this file
+    const matches = (haystack.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+    totalMatches += matches;
+    
+    if (mode === 'full') {
+      results.push({
+        file: fileName,
+        matchCount: matches,
+        mode: 'full',
+        content: content,
+      });
+    } else {
+      // Extract sections containing the search term
+      const sections = extractMarkdownSection(content, query, caseSensitive);
+      if (sections.length > 0) {
+        results.push({
+          file: fileName,
+          matchCount: matches,
+          mode: 'snippet',
+          content: sections.slice(0, 3).join('\n\n---\n\n'), // Limit to 3 sections per file
+        });
+      }
+    }
+    
+    if (results.length >= maxResults) break;
+  }
+  
+  return {
+    query,
+    totalFiles: results.length,
+    totalMatches,
+    results,
+  };
+}
 
 // Helper function to load prompts/resources from external files
 function loadPromptsConfig() {
@@ -227,88 +399,34 @@ export function buildMermaidMcpServer() {
     );
   }
 
-  // ---- Tool: search_resource ----
+  // ---- Tool: search_mermaid_docs (new optimized version) ----
   server.registerTool(
-    "search_resource",
+    "search_mermaid_docs",
     {
-      title: "Search Mermaid Documentation",
-      description: "**REQUIRED BEFORE CREATING DIAGRAMS**: Search the official Mermaid documentation for syntax patterns, keywords, or diagram types. Returns matching lines with context from official docs. MUST be called before creating any diagram. Use SINGLE-TERM queries for best results: 'flowchart' (12+ results), 'sequenceDiagram' (6+ results), 'subgraph', 'arrow'. AVOID multi-word queries like 'flowchart syntax' (0 results). After finding syntax, ALWAYS validate the final diagram with validate_mermaid tool.",
+      title: "Search Mermaid Documentation (Optimized)",
+      description: "**REQUIRED BEFORE CREATING DIAGRAMS**: Search official Mermaid documentation with smart snippet extraction. Returns relevant Markdown sections containing search terms. Use 'snippet' mode (default) for focused context or 'full' mode for complete files. Use SINGLE-TERM queries: 'flowchart', 'sequenceDiagram', 'subgraph', 'arrow'. AVOID multi-word queries.",
       inputSchema: z.object({
-        query: z.string().min(1).describe("SINGLE-TERM search query. Good: 'flowchart', 'sequenceDiagram', 'subgraph', 'arrow'. Bad: 'flowchart syntax', 'flowchart syntax mermaid' (returns 0 results). Use exact diagram type names like 'sequenceDiagram' (camelCase) or feature names."),
-        caseSensitive: z.boolean().optional().default(false).describe("Whether the search is case-sensitive"),
-        maxResults: z.number().optional().default(50).describe("Maximum matches to return"),
-        contextLines: z.number().optional().default(3).describe("Number of lines to show before and after each match for context"),
+        query: z.string().min(1).describe("SINGLE-TERM search query. Good: 'flowchart', 'sequenceDiagram', 'subgraph', 'arrow'. Bad: 'flowchart syntax' (fewer results)."),
+        diagram_type: z.string().optional().describe("Filter by diagram type filename (e.g., 'flowchart', 'sequence', 'class')"),
+        mode: z.enum(['snippet', 'full']).optional().default('snippet').describe("'snippet' returns relevant sections only (default), 'full' returns entire file content"),
+        caseSensitive: z.boolean().optional().default(false).describe("Case-sensitive search"),
+        maxResults: z.number().optional().default(10).describe("Maximum number of files to return (1-20)"),
       }),
     },
-    async ({ query, caseSensitive = false, maxResults = 50, contextLines = 3 }) => {
-      const needle = caseSensitive ? query : query.toLowerCase();
-      const maxHits = Math.max(1, Math.min(maxResults, 200));
-      const results = [];
-
-      // Search through Mermaid documentation files
-      if (!fs.existsSync(mermaidDocsDir)) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: "Mermaid documentation directory not found." }, null, 2),
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      const syntaxFiles = fs.readdirSync(mermaidDocsDir).filter(f => f.endsWith('.md'));
-      
-      for (const fileName of syntaxFiles) {
-        const filePath = path.join(mermaidDocsDir, fileName);
-        const raw = fs.readFileSync(filePath, "utf-8");
-        const lines = raw.split(/\r?\n/);
-        const matches: Array<{ line: number; text: string; context: string[] }> = [];
-
-        for (let i = 0; i < lines.length && matches.length < maxHits; i++) {
-          const line = lines[i];
-          if (!line) continue;
-          const haystack = caseSensitive ? line : line.toLowerCase();
-          
-          if (haystack.includes(needle)) {
-            // Get context lines before and after
-            const startLine = Math.max(0, i - contextLines);
-            const endLine = Math.min(lines.length - 1, i + contextLines);
-            const context = [];
-            
-            for (let j = startLine; j <= endLine; j++) {
-              const prefix = j === i ? ">>> " : "    ";
-              context.push(`${prefix}${lines[j]}`);
-            }
-
-            matches.push({
-              line: i + 1,
-              text: line.trimEnd(),
-              context,
-            });
-          }
-        }
-
-        if (matches.length > 0) {
-          results.push({
-            file: fileName,
-            matchCount: matches.length,
-            matches,
-          });
-        }
-      }
+    async ({ query, diagram_type, mode = 'snippet', caseSensitive = false, maxResults = 10 }) => {
+      const result = await searchMermaidDocs({
+        query,
+        ...(diagram_type && { diagram_type }),
+        mode,
+        caseSensitive,
+        maxResults: Math.min(maxResults, 20),
+      });
 
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({ 
-              query, 
-              totalFiles: results.length,
-              totalMatches: results.reduce((sum, r) => sum + r.matchCount, 0),
-              results 
-            }, null, 2),
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
@@ -360,6 +478,9 @@ export function buildMermaidMcpServer() {
 
 // Main execution
 async function main() {
+  // Initialize documentation cache at startup
+  await initDocsCache();
+  
   const server = buildMermaidMcpServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);

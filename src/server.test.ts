@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { buildMermaidMcpServer, validateMermaidSyntax } from './server.js';
 
 describe('Mermaid MCP Server', () => {
@@ -6,6 +6,13 @@ describe('Mermaid MCP Server', () => {
 
   beforeAll(() => {
     server = buildMermaidMcpServer();
+  });
+
+  afterAll(() => {
+    // Close the server to clean up event listeners
+    if (server && typeof server.close === 'function') {
+      server.close();
+    }
   });
 
   describe('Server Initialization', () => {
