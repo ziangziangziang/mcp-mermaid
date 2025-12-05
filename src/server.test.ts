@@ -216,6 +216,51 @@ describe('Mermaid MCP Server', () => {
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
     });
+
+    it('should validate complex flowchart with subgraphs, classes and styles', async () => {
+      const code = `flowchart TD
+      subgraph DataPrep[Data & Retrieval Layer]
+          KB[(Knowledge Base / DB)]
+          Retriever[Retriever]
+          Chunker[Chunker/Embedder]
+      end
+
+      subgraph Model[Model Layer]
+          LLM[LLM]
+      end
+
+      subgraph Orchestration[Orchestration Layer]
+          Agent[Agent]
+          MCP[MCP Runtime]
+          Tools[MCP Tools]
+      end
+
+      User([User])
+
+      User -->|query| Agent
+      Agent -->|plans/actions| MCP
+      MCP -->|exposes| Tools
+      Tools -->|invoke retrieval| Retriever
+      Retriever -->|gets docs| KB
+      Retriever -->|sends context| LLM
+      Chunker -->|embeddings| KB
+      Agent -->|prompts| LLM
+      LLM -->|answers/decisions| Agent
+      Tools -.optional data prep.-.-> Chunker
+
+      classDef data fill:#cce5ff,stroke:#2a75c4
+      classDef model fill:#ffe6cc,stroke:#c46b2a
+      classDef orchestrate fill:#e2f7e2,stroke:#3c8d3c
+      class KB,Retriever,Chunker data
+      class LLM model
+      class Agent,MCP,Tools orchestrate
+      class User fill:#f9f9f9,stroke:#555`;
+      
+      const result = await validateMermaidSyntax(code);
+      
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
   });
 
   describe('Diagram Type Detection', () => {
