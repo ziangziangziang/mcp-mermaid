@@ -60,6 +60,27 @@ describe('Mermaid Documentation Search', () => {
     }
   });
 
+  it('should find results with simple query "flowchart"', () => {
+    const flowchartDoc = path.join(mermaidDocsDir, 'flowchart.md');
+    const content = fs.readFileSync(flowchartDoc, 'utf-8');
+    
+    expect(content.toLowerCase()).toContain('flowchart');
+  });
+
+  it('should find results with simple query "sequence"', () => {
+    const sequenceDoc = path.join(mermaidDocsDir, 'sequenceDiagram.md');
+    const content = fs.readFileSync(sequenceDoc, 'utf-8');
+    
+    expect(content.toLowerCase()).toContain('sequence');
+  });
+
+  it('should find results for "subgraph" feature', () => {
+    const flowchartDoc = path.join(mermaidDocsDir, 'flowchart.md');
+    const content = fs.readFileSync(flowchartDoc, 'utf-8');
+    
+    expect(content.toLowerCase()).toContain('subgraph');
+  });
+
   it('should have multiple documentation files', () => {
     const files = fs.readdirSync(mermaidDocsDir).filter(f => f.endsWith('.md'));
     expect(files.length).toBeGreaterThan(10);

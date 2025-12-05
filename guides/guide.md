@@ -66,8 +66,15 @@
 ## Syntax Reference
 
 Use MCP tools to search the official Mermaid documentation:
-- `search_resource({ query: "flowchart syntax" })` - Search across all Mermaid documentation files
-- `get_examples({ diagramType: "sequenceDiagram" })` - Get working examples
+- `search_resource({ query: "flowchart" })` - Search for flowchart syntax (keep queries simple!)
+- `search_resource({ query: "sequence" })` - Search for sequence diagram syntax
+- `search_resource({ query: "subgraph" })` - Search for specific features
+
+**Query Tips**:
+- Use **simple, specific terms** like "flowchart", "sequence", "arrow types", "subgraph"
+- AVOID multi-word queries like "flowchart syntax mermaid" (too specific, fewer matches)
+- AVOID conversational queries like "how to create"
+- The docs are already Mermaid-specific, so don't include "mermaid" in queries
 
 The search returns matching lines with surrounding context from the official Mermaid docs.
 
@@ -214,7 +221,7 @@ flowchart LR
 ## Quick Reference
 
 **Complete workflow for any Mermaid task (DO NOT SKIP STEPS):**
-1. **REQUIRED**: Call `search_resource({ query: "<diagram_type> syntax" })` to find official documentation
+1. **REQUIRED**: Call `search_resource({ query: "<diagram_type>" })` with SIMPLE query (e.g., "flowchart", "sequence")
 2. Review search results for syntax patterns and examples
 3. If user requests multiple diagram types (e.g., "sequence AND flowchart"), create ALL requested types
 4. Build diagram(s) with human-readable names and modern features
@@ -223,7 +230,12 @@ flowchart LR
 7. **REQUIRED**: Re-validate after fixes
 8. Present ALL diagrams to user only after validation passes
 
-**Best practices:**
+**Search query best practices:**
+- Use simple terms: "flowchart", "sequence", "arrow", "subgraph", "styling"
+- DON'T use: "flowchart syntax mermaid" (too many words)
+- DON'T use: "how to create flowchart" (too conversational)
+
+**Validation and tool usage:**
 - ALWAYS call `search_resource` first to query official Mermaid docs (mandatory)
 - ALWAYS validate before presenting (mandatory)
 - If user specifies multiple diagram types, create ALL of them (mandatory)
