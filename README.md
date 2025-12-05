@@ -23,6 +23,9 @@ flowchart TD
 ```
 
 ## Install & Run
+- Clone (includes Mermaid submodule):
+  - `git clone --recurse-submodules <repo-url>`
+  - or, if already cloned: `git submodule update --init --recursive`
 - Prereq: Node 18+
 - Install: `npm install`
 - Build: `npm run build`
